@@ -47,9 +47,9 @@ def rescale_images(im1, im2, pts):
     len2 = np.sqrt((p4[1] - p3[1])**2 + (p4[0] - p3[0])**2)
     dscale = len2/len1
     if dscale < 1:
-        im1 = sktr.rescale(im1, dscale)
+        im1 = sktr.rescale(im1, dscale, multichannel=True)
     else:
-        im2 = sktr.rescale(im2, 1./dscale)
+        im2 = sktr.rescale(im2, 1./dscale, multichannel=True)
     return im1, im2
 
 def rotate_im1(im1, im2, pts):
