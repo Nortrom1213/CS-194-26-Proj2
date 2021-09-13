@@ -2,7 +2,6 @@ from align_image_code import align_images
 from scipy.signal import unit_impulse
 from scipy.signal import convolve2d
 from skimage.color import rgb2gray
-from skimage import img_as_uint
 import skimage.io as io
 import numpy as np
 import cv2
@@ -23,65 +22,63 @@ def mask_noise(dx, dy, threshold):
     mask_y = abs(dy[:,:]) > threshold
     return mask_x + mask_y
 
-def Find_Edges(image, output):
-    threshold = 20
+def Find_Edges(image, outputname, threshold):
     dx = convolve_x(image)
     dy = convolve_y(image)
-    io.imsave(output + "_dx.jpg", dx)
-    io.imsave(output + "_dy.jpg", dy)
-    io.imsave(output + "_GD.jpg", dx + dy)
-    mask = mask_noise(dx, dy, threshold)
-    io.imsave(output + "_Edge.jpg", img_as_uint(mask))
+    io.imsave(outputname + "_dx.jpg", dx)
+    io.imsave(outputname + "_dy.jpg", dy)
+    io.imsave(outputname + "_GD.jpg", dx + dy)
+
+    result = mask_noise(dx, dy, threshold)
+    io.imsave(outputname + "_Edge.jpg", result)
 
 im = io.imread("cameraman.png")
 img = im[:,:,0]
-Find_Edges(img, "cameraman")
+Find_Edges(img, "cameraman", 20)
 
 ### 1.2
 def gaussian_kernel(size, sigma):
     kernel = cv2.getGaussianKernel(size, sigma)
     return np.outer(kernel, np.transpose(kernel))
 
-def Find_Edges_Blur(image, output):
-    threshold = 20
+def Find_Edges_Blur(image, outputname, threshold):
     gauss = gaussian_kernel(20, 1.5)
-    blurry = convolve2d(image, gauss)
-    dx = convolve_x(blurry)
-    dy = convolve_y(blurry)
+    blur = convolve2d(image, gauss)
+    dx = convolve_x(blur)
+    dy = convolve_y(blur)
 
-    io.imsave(output + "_dx_BB.jpg", dx)
-    io.imsave(output + "_dy_BB.jpg", dy)
-    io.imsave(output + "_GD_BB.jpg", dx + dy)
+    io.imsave(outputname + "_dx_BB.jpg", dx)
+    io.imsave(outputname + "_dy_BB.jpg", dy)
+    io.imsave(outputname + "_GD_BB.jpg", dx + dy)
 
-    blurry_mask = mask_noise(dx, dy, threshold)
-    io.imsave(output + "_Edge_BB.jpg", img_as_uint(blurry_mask))
+    result = mask_noise(dx, dy, threshold)
+    io.imsave(outputname + "_Edge_BB.jpg", result)
 
-def Find_Edges_DOG(image, output):
-    threshold = 20
+def Find_Edges_DOG(image, outputname, threshold):
     gauss = gaussian_kernel(20, 1.5)
-    kernel_dx = convolve_x(gauss)
-    kernel_dy = convolve_y(gauss)
-    blurry_dx = convolve2d(image, kernel_dx)
-    blurry_dy = convolve2d(image, kernel_dy)
+    dx = convolve_x(gauss)
+    dy = convolve_y(gauss)
+    blur_dx = convolve2d(image, dx)
+    blur_dy = convolve2d(image, dy)
 
-    io.imsave(output + "_dx_DOG.jpg", blurry_dx)
-    io.imsave(output + "_dy_DOG.jpg", blurry_dy)
-    io.imsave(output + "_GD_DOG.jpg", blurry_dx + blurry_dy)
+    io.imsave(outputname + "_dx_DOG.jpg", blur_dx)
+    io.imsave(outputname + "_dy_DOG.jpg", blur_dy)
+    io.imsave(outputname + "_GD_DOG.jpg", blur_dx + blur_dy)
 
-    dof_blurry_mask = mask_noise(blurry_dx, blurry_dy, threshold)
-    io.imsave(output + "_Edge_DOG.jpg", img_as_uint(dof_blurry_mask))
+    result = mask_noise(blur_dx, blur_dy, threshold)
+    io.imsave(outputname + "_Edge_DOG.jpg", result)
 
-Find_Edges_Blur(img, "cameraman")
-Find_Edges_DOG(img, "cameraman")
+Find_Edges_Blur(img, "cameraman", 20)
+Find_Edges_DOG(img, "cameraman", 20)
 
 ### 2.1
 unit = unit_impulse((20, 20), 'mid')
 def Blur(img, size, sigma):
     kernel = gaussian_kernel(size, sigma)
-    img_blurry_0 = convolve2d(img[:, :, 0], kernel, mode="same")
-    img_blurry_1 = convolve2d(img[:, :, 1], kernel, mode="same")
-    img_blurry_2 = convolve2d(img[:, :, 2], kernel, mode="same")
-    return np.dstack([img_blurry_0, img_blurry_1, img_blurry_2])
+    img_blur_0 = convolve2d(img[:, :, 0], kernel, mode="same")
+    img_blur_1 = convolve2d(img[:, :, 1], kernel, mode="same")
+    img_blur_2 = convolve2d(img[:, :, 2], kernel, mode="same")
+    return np.dstack([img_blur_0, img_blur_1, img_blur_2])
 
 def normalize(img):
     return (img - np.amin(img)) / (np.amax(img) - np.amin(img))
@@ -143,36 +140,38 @@ def laplacian_stack(image, size, sigma):
     stack.append(gauss_stack[-1]/255)
     return stack[1:]
 
-def show_stack(image, output):
+def show_stack(image, outputname):
     gauss_stack = gaussian_stack(image, 20, 5)
     gauss_stack = [gauss for gauss in gauss_stack]
     lap_stack = laplacian_stack(image, 20, 5)
-    lap_stack = [lapl for lapl in lap_stack]
+    lap_stack = [lap for lap in lap_stack]
+
     gauss_output = np.concatenate(gauss_stack[:], axis=1)
-    io.imsave(output + "_gaussianStack.jpg", gauss_output)
+    io.imsave(outputname + "_gaussianStack.jpg", gauss_output)
     lapl_output = np.concatenate(lap_stack[:], axis=1)
-    io.imsave(output + "_laplacianStack.jpg", lapl_output)
+    io.imsave(outputname + "_laplacianStack.jpg", lapl_output)
 
 img = io.imread("Thanos+CAT.jpg")
 show_stack(img, "TC")
 
 ### 2.4
-def blend(A, B, R):
-    R = rgb2gray(R)
-    R = R[:,:] > 0.2
-    R = np.dstack([R, R, R])
-    LA = laplacian_stack(A, 30, 30)
-    LB = laplacian_stack(B, 30, 30)
-    GR = gaussian_stack(R, 20, 10)
-    LS = []
-    for i in range(0, len(LA)):
-        LS.append(GR[i]*LA[i] + (1 - GR[i])*LB[i])
+def blend(img1, img2, mask):
+    mask = rgb2gray(mask)
+    mask = mask[:,:] > 0.2
+    mask = np.dstack([mask, mask, mask])
+    lapl_img1 = laplacian_stack(img1, 30, 30)
+    lapl_img2 = laplacian_stack(img2, 30, 30)
+    gauss_mask = gaussian_stack(mask, 20, 10)
 
-    LS = sum(LS)
+    output = []
+    for i in range(0, len(lapl_img1)):
+        output.append(gauss_mask[i] * lapl_img1[i] + (1 - gauss_mask[i]) * lapl_img2[i])
 
-    return LS
+    output = sum(output)
 
-img1 = io.imread("sussage.jpg")
+    return output
+
+img1 = io.imread("water.jpg")
 img2 = io.imread("akali.jpg")
 mask = io.imread("akali_mask.jpg")
 result = blend(img1, img2, mask)
